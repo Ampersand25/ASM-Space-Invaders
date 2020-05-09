@@ -7,6 +7,7 @@ includelib msvcrt.lib
 extern exit: proc
 extern malloc: proc
 extern memset: proc
+extern getchar: proc
 
 includelib canvas.lib
 extern BeginDrawing: proc
@@ -45,6 +46,7 @@ include playerdisappear.inc
 include blast.inc
 include alien.inc
 include aliendisappear.inc
+include alien_blast.inc
 
 buttonShoot_x EQU 485
 buttonShoot_y EQU 545
@@ -115,6 +117,9 @@ make_text proc
 	cmp eax, '@'
 	je make_alien
 
+	cmp eax, '|'
+	je make_alien_blast
+
 	cmp eax, '*'
 	je make_blast
 
@@ -143,32 +148,37 @@ make_text proc
 make_aliendisappear:
 	mov eax, 0
 	lea esi, aliendisappear
-	je draw_alien
+	jmp draw_alien
 
 make_alien:
 	mov eax, 0
 	lea esi, alien
-	je draw_alien
+	jmp draw_alien
+
+make_alien_blast:
+	mov eax, 0
+	lea esi, alien_blast
+	jmp draw_text
 
 make_blast:
 	mov eax, 0
 	lea esi, blast
-	je draw_text
+	jmp draw_text
 
 make_playerdisappear:
 	mov eax, 0
 	lea esi, playerdisappear
-	je draw_spaceship
+	jmp draw_spaceship
 
 make_douapuncte:
 	mov eax, 0
 	lea esi, douapuncte
-	je draw_text
+	jmp draw_text
 
 make_dreptunghi:
 	mov eax, 0
 	lea esi, dreptunghi
-	je draw_text
+	jmp draw_text
 
 make_player:
 	mov eax, 0
@@ -178,8 +188,10 @@ make_player:
 make_digit:
 	cmp eax, '0'
 	jl make_space
+
 	cmp eax, '9'
 	jg make_space
+
 	sub eax, '0'
 	lea esi, digits
 	jmp draw_text
@@ -196,6 +208,7 @@ draw_alien:
 	mul ebx
 	add esi, eax
 	mov ecx, alien_height
+
 bucla_alien_linii:
 	mov edi, [ebp + arg2] ; pointer la matricea de pixeli
 	mov eax, [ebp + arg4] ; pointer la coord y
@@ -208,13 +221,17 @@ bucla_alien_linii:
 	add edi, eax
 	push ecx
 	mov ecx, alien_width
+
 bucla_alien_coloane:
 	cmp byte ptr [esi], 1
 	je alien_pixel_color
+
 	mov dword ptr [edi], 0
 	jmp alien_pixel_next
+
 alien_pixel_color:
 	mov dword ptr [edi], 00FFFFh
+
 alien_pixel_next:
 	inc esi
 	add edi, 4
@@ -233,6 +250,7 @@ draw_spaceship:
 	mul ebx
 	add esi, eax
 	mov ecx, spaceship_height
+
 bucla_spaceship_linii:
 	mov edi, [ebp + arg2] ; pointer la matricea de pixeli
 	mov eax, [ebp + arg4] ; pointer la coord y
@@ -245,13 +263,17 @@ bucla_spaceship_linii:
 	add edi, eax
 	push ecx
 	mov ecx, spaceship_width
+
 bucla_spaceship_coloane:
 	cmp byte ptr [esi], 0
 	jne spaceship_pixel_verde
+
 	mov dword ptr [edi], 0
 	jmp spaceship_pixel_next
+
 spaceship_pixel_verde:
 	mov dword ptr [edi], 0FF00h
+
 spaceship_pixel_next:
 	inc esi
 	add edi, 4
@@ -270,6 +292,7 @@ draw_text:
 	mul ebx
 	add esi, eax
 	mov ecx, symbol_height
+
 bucla_simbol_linii:
 	mov edi, [ebp + arg2] ; pointer la matricea de pixeli
 	mov eax, [ebp + arg4] ; pointer la coord y
@@ -282,18 +305,31 @@ bucla_simbol_linii:
 	add edi, eax
 	push ecx
 	mov ecx, symbol_width
+
 bucla_simbol_coloane:
 	cmp byte ptr [esi], 1
 	je simbol_pixel_verde
+
 	cmp byte ptr [esi], 2
+	je simbol_pixel_alb
+
+	cmp byte ptr [esi], 3
 	je simbol_pixel_rosu
+
 	mov dword ptr [edi], 0
 	jmp simbol_pixel_next
+
 simbol_pixel_verde:
 	mov dword ptr [edi], 0FF00h
 	jmp simbol_pixel_next
+
+simbol_pixel_alb:
+	mov dword ptr [edi], 0FFFFFFh
+	jmp simbol_pixel_next
+
 simbol_pixel_rosu:
 	mov dword ptr [edi], 0FF0000h
+
 simbol_pixel_next:
 	inc esi
 	add edi, 4
@@ -430,7 +466,7 @@ alien_shoot:
 	mov alien_blast_y, edx
 	add alien_blast_y, 45
 
-	make_text_macro '*', area, alien_blast_x, alien_blast_y
+	make_text_macro '|', area, alien_blast_x, alien_blast_y
 
 	jmp increase_game_start
 
@@ -453,6 +489,7 @@ spaceship_hit:
 	cmp alien_blast_y, edx
 	jg move_alien_blast
 
+	call getchar
 	call exit
 
 move_alien_blast:
@@ -465,7 +502,7 @@ move_alien_blast:
 	mov edx, 520
 	cmp edx, alien_blast_y
 	jle reset_alien_blast
-	make_text_macro '*', area, alien_blast_x, alien_blast_y
+	make_text_macro '|', area, alien_blast_x, alien_blast_y
 	jmp increase_game_start
 
 reset_alien_blast:
