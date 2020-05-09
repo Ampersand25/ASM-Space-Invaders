@@ -24,7 +24,7 @@ area_width EQU 1024
 area_height EQU 620
 area DD 0
 
-score DD 0 ; numara evenimentele de tip timer
+score DD 0
 
 arg1 EQU 8
 arg2 EQU 12
@@ -41,6 +41,8 @@ include dreptunghi.inc
 include douapuncte.inc
 include playerdisappear.inc
 include blast.inc
+include alien.inc
+include aliendisappear.inc
 
 buttonShoot_x EQU 485
 buttonShoot_y EQU 545
@@ -66,10 +68,20 @@ spaceship_speed DD 86
 
 blast_x DD 0
 blast_y DD 0
-blast_speed DD 30
-
+blast_speed DD 40
 
 can_shoot DD 1
+
+alien_width EQU 45
+alien_height EQU 45
+
+alien_x DD 499
+alien_y EQU 255
+
+alien_direction DD 0
+alien_alive DD 1
+
+timer DD 0
 
 .code
 ; procedura make_text afiseaza o litera sau o cifra la coordonatele date
@@ -82,44 +94,74 @@ make_text proc
 	mov ebp, esp
 	pusha
 
-	mov eax, [ebp+arg1] ; citim simbolul de afisat
+	mov eax, [ebp + arg1] ; citim simbolul de afisat
+
+	cmp eax, '+'
+	je make_aliendisappear
+
+	cmp eax, '@'
+	je make_alien
+
 	cmp eax, '*'
 	je make_blast
+
 	cmp eax, '%'
 	je make_playerdisappear
+
 	cmp eax, ':'
 	je make_douapuncte
+
 	cmp eax, '#'
 	je make_dreptunghi
+
 	cmp eax, '$'
 	je make_player
+
 	cmp eax, 'A'
 	jl make_digit
+
 	cmp eax, 'Z'
 	jg make_digit
+
 	sub eax, 'A'
 	lea esi, letters
 	jmp draw_text
+
+make_aliendisappear:
+	mov eax, 0
+	lea esi, aliendisappear
+	je draw_alien
+
+make_alien:
+	mov eax, 0
+	lea esi, alien
+	je draw_alien
+
 make_blast:
-	sub eax, '*'
+	mov eax, 0
 	lea esi, blast
 	je draw_text
+
 make_playerdisappear:
-	sub eax, '%'
+	mov eax, 0
 	lea esi, playerdisappear
 	je draw_spaceship
+
 make_douapuncte:
-	sub eax, ':'
+	mov eax, 0
 	lea esi, douapuncte
 	je draw_text
+
 make_dreptunghi:
-	sub eax, '#'
+	mov eax, 0
 	lea esi, dreptunghi
 	je draw_text
+
 make_player:
-	sub eax, '$'
+	mov eax, 0
 	lea esi, player
 	je draw_spaceship
+
 make_digit:
 	cmp eax, '0'
 	jl make_space
@@ -128,10 +170,48 @@ make_digit:
 	sub eax, '0'
 	lea esi, digits
 	jmp draw_text
+
 make_space:	
 	mov eax, 26 ; de la 0 pana la 25 sunt litere, 26 e space
 	lea esi, letters
 	jmp draw_text
+
+draw_alien:
+	mov ebx, alien_width
+	mul ebx
+	mov ebx, alien_height
+	mul ebx
+	add esi, eax
+	mov ecx, alien_height
+bucla_alien_linii:
+	mov edi, [ebp + arg2] ; pointer la matricea de pixeli
+	mov eax, [ebp + arg4] ; pointer la coord y
+	add eax, alien_height
+	sub eax, ecx
+	mov ebx, area_width
+	mul ebx
+	add eax, [ebp + arg3] ; pointer la coord x
+	shl eax, 2 ; inmultim cu 4, avem un DWORD per pixel
+	add edi, eax
+	push ecx
+	mov ecx, alien_width
+bucla_alien_coloane:
+	cmp byte ptr [esi], 1
+	je alien_pixel_color
+	mov dword ptr [edi], 0
+	jmp alien_pixel_next
+alien_pixel_color:
+	mov dword ptr [edi], 00FFFFh
+alien_pixel_next:
+	inc esi
+	add edi, 4
+	loop bucla_alien_coloane
+	pop ecx
+	loop bucla_alien_linii
+	popa
+	mov esp, ebp
+	pop ebp
+	ret
 
 draw_spaceship:
 	mov ebx, spaceship_width
@@ -141,13 +221,13 @@ draw_spaceship:
 	add esi, eax
 	mov ecx, spaceship_height
 bucla_spaceship_linii:
-	mov edi, [ebp+arg2] ; pointer la matricea de pixeli
-	mov eax, [ebp+arg4] ; pointer la coord y
+	mov edi, [ebp + arg2] ; pointer la matricea de pixeli
+	mov eax, [ebp + arg4] ; pointer la coord y
 	add eax, spaceship_height
 	sub eax, ecx
 	mov ebx, area_width
 	mul ebx
-	add eax, [ebp+arg3] ; pointer la coord x
+	add eax, [ebp + arg3] ; pointer la coord x
 	shl eax, 2 ; inmultim cu 4, avem un DWORD per pixel
 	add edi, eax
 	push ecx
@@ -178,13 +258,13 @@ draw_text:
 	add esi, eax
 	mov ecx, symbol_height
 bucla_simbol_linii:
-	mov edi, [ebp+arg2] ; pointer la matricea de pixeli
-	mov eax, [ebp+arg4] ; pointer la coord y
+	mov edi, [ebp + arg2] ; pointer la matricea de pixeli
+	mov eax, [ebp + arg4] ; pointer la coord y
 	add eax, symbol_height
 	sub eax, ecx
 	mov ebx, area_width
 	mul ebx
-	add eax, [ebp+arg3] ; pointer la coord x
+	add eax, [ebp + arg3] ; pointer la coord x
 	shl eax, 2 ; inmultim cu 4, avem un DWORD per pixel
 	add edi, eax
 	push ecx
@@ -233,6 +313,72 @@ draw proc
 	mov ebp, esp
 	pusha
 
+	mov edx, 0
+	cmp edx, alien_alive
+	je continue
+
+	mov edx, alien_x
+	cmp blast_x, edx
+	jl eticheta
+	mov edx, alien_x
+	add edx, alien_width
+	cmp blast_x, edx
+	jg eticheta
+	mov edx, alien_y
+	cmp blast_y, edx
+	jl eticheta
+	mov edx, alien_y
+	add edx, alien_height
+	cmp blast_y, edx
+	jg eticheta
+	mov alien_alive, 0
+	add score, 10
+	make_text_macro '+', area, alien_x, alien_y
+	;call exit
+	jmp continue
+
+eticheta:
+	inc timer
+	mov edx, 2
+	cmp timer, edx
+	jne continue
+	mov timer, 0
+
+back:
+	mov ecx, 0
+	cmp ecx, alien_direction
+	je right_dir
+	mov eax, alien_x
+	mov ebx, spaceship_speed
+	cmp eax, ebx
+	jle change_dir
+	make_text_macro '+', area, alien_x, alien_y
+	mov ecx, alien_x
+	sub ecx, spaceship_speed
+	mov alien_x, ecx
+	jmp continue
+
+right_dir:
+	mov eax, alien_x
+	mov ebx, area_width
+	mov ecx, spaceship_speed
+	add ecx, 35
+	sub ebx, ecx
+	cmp eax, ebx
+	jge change_dir
+	make_text_macro '+', area, alien_x, alien_y
+	mov ecx, alien_x
+	add ecx, spaceship_speed
+	mov alien_x, ecx
+	jmp continue
+
+change_dir:
+	mov edx, alien_direction
+	xor edx, 1
+	mov alien_direction, edx
+	jmp back
+
+continue:
 	mov edx, 1
 	cmp edx, can_shoot
 	je next
@@ -253,7 +399,7 @@ next:
 	cmp eax, 1
 	jz evt_click
 	cmp eax, 2
-	jz evt_timer ; nu s-a efectuat click pe nimic
+	jz afisare_litere ; nu s-a efectuat click pe nimic
 	;mai jos e codul care intializeaza fereastra cu pixeli negri
 	mov eax, area_width
 	mov ebx, area_height
@@ -267,7 +413,7 @@ next:
 	jmp afisare_litere
 
 bucla_linii:
-	mov eax, [ebp+arg2]
+	mov eax, [ebp + arg2]
 	and eax, 0FFh
 	; provide a new (random) color
 	mul eax
@@ -310,7 +456,6 @@ buttonLeft:
 	make_text_macro 'F', area, 40, 20
 	make_text_macro 'T', area, 50, 20
 	jmp move_left
-	jmp afisare_litere
 
 move_left:
 	mov eax, spaceship_x
@@ -452,9 +597,6 @@ reset:
 	make_text_macro ' ', area, 50, 20
 	make_text_macro ' ', area, 60, 20
 	jmp afisare_litere
-
-evt_timer:
-	; inc score
 	
 afisare_litere:
 	make_text_macro 'S', area, 20, 560
@@ -534,6 +676,11 @@ afisare_litere:
 
 	make_text_macro '$', area, spaceship_x, spaceship_y
 
+	mov edx, 0
+	cmp edx, alien_alive
+	je final_draw
+	make_text_macro '@', area, alien_x, alien_y
+
 final_draw:
 	popa
 	mov esp, ebp
@@ -548,7 +695,7 @@ start:
 	mul ebx ; EAX = area_width * area_height
 	shl eax, 2 ; EAX = area_width * area_height * 4
 	push eax ; punem pe stiva valoarea din registrul eax
-	call malloc
+	call malloc ; alocam memorie in mod dinamic (pe heap) pentru zona de desenat
 	add esp, 4 ; curatam stiva
 	mov area, eax
 
@@ -560,8 +707,8 @@ start:
 	push area_height
 	push area_width
 	push offset window_title
-	call BeginDrawing
-	add esp, 20
+	call BeginDrawing ; apelam functia/procedura de desenat
+	add esp, 20 ; curatam stiva
 
 	;terminarea programului
 	push 0
