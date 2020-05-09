@@ -25,6 +25,8 @@ area_height EQU 620
 area DD 0
 
 score DD 0
+score_max EQU 1000
+points EQU 10
 
 arg1 EQU 8
 arg2 EQU 12
@@ -75,11 +77,14 @@ can_shoot DD 1
 alien_width EQU 45
 alien_height EQU 45
 
-alien_x DD 499
+alien_init_x DD 499
+alien_init_direction DD 1
+
+alien_x DD 0
 alien_y EQU 255
 
 alien_direction DD 0
-alien_alive DD 1
+alien_alive DD 0
 
 timer DD 0
 
@@ -313,10 +318,19 @@ draw proc
 	mov ebp, esp
 	pusha
 
+	mov edx, score_max
+	cmp score, edx
+	jl game_not_over
+	call exit
+
+game_not_over:
 	mov edx, 0
 	cmp edx, alien_alive
-	je continue
+	je restore_alien
 
+	mov edx, can_shoot
+	cmp edx, 1
+	je eticheta
 	mov edx, alien_x
 	cmp blast_x, edx
 	jl eticheta
@@ -332,10 +346,12 @@ draw proc
 	cmp blast_y, edx
 	jg eticheta
 	mov alien_alive, 0
-	add score, 10
+	mov edx, points
+	add score, edx
 	make_text_macro '+', area, alien_x, alien_y
+	make_text_macro ' ', area, blast_x, blast_y
 	;call exit
-	jmp continue
+	jmp reset_blast
 
 eticheta:
 	inc timer
@@ -377,6 +393,14 @@ change_dir:
 	xor edx, 1
 	mov alien_direction, edx
 	jmp back
+
+restore_alien:
+	mov edx, alien_init_x
+	mov alien_x, edx
+	mov alien_alive, 1
+	xor alien_init_direction, 1
+	mov edx, alien_init_direction
+	mov alien_direction, edx
 
 continue:
 	mov edx, 1
