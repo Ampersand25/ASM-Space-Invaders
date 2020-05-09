@@ -74,6 +74,12 @@ blast_speed DD 40
 
 can_shoot DD 1
 
+alien_blast_x DD 0
+alien_blast_y DD 0
+alien_blast_speed DD 40
+
+alien_can_shoot DD 1
+
 alien_width EQU 45
 alien_height EQU 45
 
@@ -87,6 +93,8 @@ alien_direction DD 0
 alien_alive DD 0
 
 timer DD 0
+
+game_start DD 1
 
 .code
 ; procedura make_text afiseaza o litera sau o cifra la coordonatele date
@@ -328,6 +336,7 @@ game_not_over:
 	cmp edx, alien_alive
 	je restore_alien
 
+next_instruction:
 	mov edx, can_shoot
 	cmp edx, 1
 	je eticheta
@@ -357,7 +366,7 @@ eticheta:
 	inc timer
 	mov edx, 2
 	cmp timer, edx
-	jne continue
+	jne alien_shoot
 	mov timer, 0
 
 back:
@@ -372,7 +381,7 @@ back:
 	mov ecx, alien_x
 	sub ecx, spaceship_speed
 	mov alien_x, ecx
-	jmp continue
+	jmp alien_shoot
 
 right_dir:
 	mov eax, alien_x
@@ -386,7 +395,7 @@ right_dir:
 	mov ecx, alien_x
 	add ecx, spaceship_speed
 	mov alien_x, ecx
-	jmp continue
+	jmp alien_shoot
 
 change_dir:
 	mov edx, alien_direction
@@ -402,7 +411,73 @@ restore_alien:
 	mov edx, alien_init_direction
 	mov alien_direction, edx
 
-continue:
+alien_shoot:
+	mov edx, 2
+	cmp game_start, edx
+	jle increase_game_start
+
+	mov edx, 1
+	cmp edx, alien_can_shoot
+	jne spaceship_hit
+
+	mov alien_can_shoot, 0
+
+	mov edx, alien_x
+	mov alien_blast_x, edx
+	add alien_blast_x, 18
+
+	mov edx, alien_y
+	mov alien_blast_y, edx
+	add alien_blast_y, 45
+
+	make_text_macro '*', area, alien_blast_x, alien_blast_y
+
+	jmp increase_game_start
+
+spaceship_hit:
+	mov edx, spaceship_x
+	cmp alien_blast_x, edx
+	jl move_alien_blast
+
+	mov edx, spaceship_x
+	add edx, spaceship_width
+	cmp alien_blast_x, edx
+	jg move_alien_blast
+
+	mov edx, spaceship_y
+	cmp alien_blast_y, edx
+	jl move_alien_blast
+
+	mov edx, spaceship_y
+	add edx, spaceship_height
+	cmp alien_blast_y, edx
+	jg move_alien_blast
+
+	call exit
+
+move_alien_blast:
+	mov edx, 520
+	cmp edx, alien_blast_y
+	jle reset_alien_blast
+	make_text_macro ' ', area, alien_blast_x, alien_blast_y
+	mov edx, alien_blast_speed
+	add alien_blast_y, edx
+	mov edx, 520
+	cmp edx, alien_blast_y
+	jle reset_alien_blast
+	make_text_macro '*', area, alien_blast_x, alien_blast_y
+	jmp increase_game_start
+
+reset_alien_blast:
+	mov alien_can_shoot, 1
+
+increase_game_start:
+	mov edx, 3
+	cmp game_start, edx
+	je blast_shoot
+	inc game_start
+
+blast_shoot:
 	mov edx, 1
 	cmp edx, can_shoot
 	je next
