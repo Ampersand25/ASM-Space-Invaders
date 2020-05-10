@@ -8,6 +8,7 @@ extern exit: proc
 extern malloc: proc
 extern memset: proc
 extern getchar: proc
+extern system: proc
 
 includelib canvas.lib
 extern BeginDrawing: proc
@@ -97,6 +98,12 @@ alien_alive DD 0
 timer DD 0
 
 game_start DD 1
+
+game_over DD 0
+game_over_text_x EQU 477
+game_over_text_y EQU 20
+
+system_arg DB "pause", 0
 
 .code
 ; procedura make_text afiseaza o litera sau o cifra la coordonatele date
@@ -362,9 +369,25 @@ draw proc
 	mov ebp, esp
 	pusha
 
+	mov edx, 0
+	cmp edx, game_over
+	je not_exit
+	push offset system_arg
+	call system
+	push -1
+	call exit
+
+	; varianta alternativa:
+	;call getchar
+	;call exit
+
+not_exit:
 	mov edx, score_max
 	cmp score, edx
 	jl game_not_over
+	push offset system_arg
+	call system
+	push 1
 	call exit
 
 game_not_over:
@@ -489,8 +512,17 @@ spaceship_hit:
 	cmp alien_blast_y, edx
 	jg move_alien_blast
 
-	call getchar
-	call exit
+	mov game_over, 1
+	make_text_macro 'G', area, game_over_text_x, game_over_text_y
+	make_text_macro 'A', area, game_over_text_x + 10, game_over_text_y
+	make_text_macro 'M', area, game_over_text_x + 20, game_over_text_y
+	make_text_macro 'E', area, game_over_text_x + 30, game_over_text_y
+	make_text_macro ' ', area, game_over_text_x + 40, game_over_text_y
+	make_text_macro 'O', area, game_over_text_x + 50, game_over_text_y
+	make_text_macro 'V', area, game_over_text_x + 60, game_over_text_y
+	make_text_macro 'E', area, game_over_text_x + 70, game_over_text_y
+	make_text_macro 'R', area, game_over_text_x + 80, game_over_text_y
+	jmp afisare_litere
 
 move_alien_blast:
 	mov edx, 520
