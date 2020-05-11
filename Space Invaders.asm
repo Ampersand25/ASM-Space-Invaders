@@ -48,6 +48,11 @@ include blast.inc
 include alien.inc
 include aliendisappear.inc
 include alien_blast.inc
+include playericon.inc
+include playericondisappear.inc
+
+playericon_width EQU 25
+playericon_height EQU 25
 
 buttonShoot_x EQU 485
 buttonShoot_y EQU 545
@@ -103,6 +108,8 @@ game_over DD 0
 game_over_text_x EQU 477
 game_over_text_y EQU 20
 
+player_lives DD 2
+
 system_arg DB "pause", 0
 
 .code
@@ -117,6 +124,12 @@ make_text proc
 	pusha
 
 	mov eax, [ebp + arg1] ; citim simbolul de afisat
+
+	cmp eax, '{'
+	je make_playericon
+
+	cmp eax, '}'
+	je make_playerdisappear
 
 	cmp eax, '+'
 	je make_aliendisappear
@@ -151,6 +164,16 @@ make_text proc
 	sub eax, 'A'
 	lea esi, letters
 	jmp draw_text
+
+make_playericon:
+	mov eax, 0
+	lea esi, playericon
+	jmp draw_playericon
+
+make_playericondisappear:
+	mov eax, 0
+	lea esi, playericondisappear
+	jmp draw_playericon
 
 make_aliendisappear:
 	mov eax, 0
@@ -207,6 +230,48 @@ make_space:
 	mov eax, 26 ; de la 0 pana la 25 sunt litere, 26 e space
 	lea esi, letters
 	jmp draw_text
+
+draw_playericon:
+	mov ebx, playericon_width
+	mul ebx
+	mov ebx, playericon_height
+	mul ebx
+	add esi, eax
+	mov ecx, playericon_height
+
+bucla_playericon_linii:
+	mov edi, [ebp + arg2] ; pointer la matricea de pixeli
+	mov eax, [ebp + arg4] ; pointer la coord y
+	add eax, playericon_height
+	sub eax, ecx
+	mov ebx, area_width
+	mul ebx
+	add eax, [ebp + arg3] ; pointer la coord x
+	shl eax, 2 ; inmultim cu 4, avem un DWORD per pixel
+	add edi, eax
+	push ecx
+	mov ecx, playericon_width
+
+bucla_playericon_coloane:
+	cmp byte ptr [esi], 1
+	je playericon_pixel_color
+
+	mov dword ptr [edi], 0
+	jmp playericon_pixel_next
+
+playericon_pixel_color:
+	mov dword ptr [edi], 0FF00h
+
+playericon_pixel_next:
+	inc esi
+	add edi, 4
+	loop bucla_playericon_coloane
+	pop ecx
+	loop bucla_playericon_linii
+	popa
+	mov esp, ebp
+	pop ebp
+	ret
 
 draw_alien:
 	mov ebx, alien_width
@@ -512,6 +577,12 @@ spaceship_hit:
 	cmp alien_blast_y, edx
 	jg move_alien_blast
 
+	;mov alien_can_shoot, 1
+
+	mov edx, 0
+	cmp edx, player_lives
+	jne decrease_lives
+
 	mov game_over, 1
 	make_text_macro 'G', area, game_over_text_x, game_over_text_y
 	make_text_macro 'A', area, game_over_text_x + 10, game_over_text_y
@@ -523,6 +594,12 @@ spaceship_hit:
 	make_text_macro 'E', area, game_over_text_x + 70, game_over_text_y
 	make_text_macro 'R', area, game_over_text_x + 80, game_over_text_y
 	jmp afisare_litere
+
+decrease_lives:
+	mov edx, player_lives
+	dec edx
+	mov player_lives, edx
+	jmp reset_alien_blast
 
 move_alien_blast:
 	mov edx, 520
@@ -844,6 +921,27 @@ afisare_litere:
 
 	make_text_macro '$', area, spaceship_x, spaceship_y
 
+	mov edx, 1
+	cmp edx, player_lives
+	je one_more_life
+
+	mov edx, 0
+	cmp edx, player_lives
+	je no_life_left
+
+	make_text_macro '{', area, 984, 20
+	make_text_macro '{', area, 984, 60
+	jmp alien_dead_verification
+
+one_more_life:
+	make_text_macro '{', area, 984, 20
+	make_text_macro '}', area, 984, 60
+	jmp alien_dead_verification
+
+no_life_left:
+	make_text_macro '}', area, 984, 20
+
+alien_dead_verification:
 	mov edx, 0
 	cmp edx, alien_alive
 	je final_draw
