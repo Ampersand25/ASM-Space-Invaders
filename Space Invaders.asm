@@ -52,7 +52,7 @@ include playericon.inc
 include playericondisappear.inc
 
 playericon_width EQU 25
-playericon_height EQU 25
+playericon_height EQU 24
 
 buttonShoot_x EQU 485
 buttonShoot_y EQU 545
