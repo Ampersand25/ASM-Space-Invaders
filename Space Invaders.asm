@@ -96,6 +96,7 @@ alien_init_direction DD 1
 
 alien_x DD 0
 alien_y DD 175
+alien_speed DD 3
 
 alien_direction DD 0
 alien_alive DD 0
@@ -519,7 +520,7 @@ next_instruction:
 
 eticheta:
 	inc timer
-	mov edx, 2
+	mov edx, alien_speed
 	cmp timer, edx
 	jne alien_shoot
 	mov timer, 0
@@ -608,7 +609,6 @@ spaceship_hit:
 	cmp alien_blast_x, edx
 	jg move_alien_blast
 
-	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	mov edx, alien_blast_y
 	add edx, 20
 	cmp edx, spaceship_y
@@ -640,6 +640,8 @@ spaceship_hit:
 	jmp afisare_litere
 
 decrease_lives:
+	dec alien_speed
+	mov timer, 0
 	make_text_macro '+', area, alien_x, alien_y
 	mov edx, alien_y
 	add edx, alien_blast_speed
