@@ -108,7 +108,7 @@ alien_alive DD 0
 
 timer DD 0
 
-game_start DD 1
+game_start DD 0
 
 game_over DD 0
 game_over_text_x EQU 477
@@ -639,6 +639,11 @@ alien_shoot:
 	mov edx, 1
 	cmp edx, alien_can_shoot
 	jne spaceship_hit
+
+	; Extraterestrul trage doar cand este in dreptul jucatorului
+	mov edx, spaceship_x
+	cmp edx, alien_x
+	jne increase_game_start
 
 	mov alien_can_shoot, 0
 
