@@ -110,6 +110,8 @@ game_over_text_y EQU 20
 
 player_lives DD 2
 
+alien_model DD 0
+
 system_arg DB "pause", 0
 
 .code
@@ -182,6 +184,7 @@ make_aliendisappear:
 
 make_alien:
 	mov eax, 0
+	add eax, alien_model
 	lea esi, alien
 	jmp draw_alien
 
@@ -296,13 +299,41 @@ bucla_alien_linii:
 
 bucla_alien_coloane:
 	cmp byte ptr [esi], 1
-	je alien_pixel_color
+	je alien_pixel_turcoaz
+
+	cmp byte ptr [esi], 2
+	je alien_pixel_roz
+
+	cmp byte ptr [esi], 3
+	je alien_pixel_galben
+
+	cmp byte ptr [esi], 4
+	je alien_pixel_violet
+
+	cmp byte ptr [esi], 5
+	je alien_pixel_rosu
 
 	mov dword ptr [edi], 0
 	jmp alien_pixel_next
 
-alien_pixel_color:
-	mov dword ptr [edi], 00FFFFh
+alien_pixel_turcoaz:
+	mov dword ptr [edi], 00ffffh
+	jmp alien_pixel_next
+
+alien_pixel_roz:
+	mov dword ptr [edi], 0ff1493h
+	jmp alien_pixel_next
+
+alien_pixel_galben:
+	mov dword ptr [edi], 0ffff00h
+	jmp alien_pixel_next
+
+alien_pixel_violet:
+	mov dword ptr [edi], 08a2be2h
+	jmp alien_pixel_next
+
+alien_pixel_rosu:
+	mov dword ptr [edi], 0dc143Ch
 
 alien_pixel_next:
 	inc esi
