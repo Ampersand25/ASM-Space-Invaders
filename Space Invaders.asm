@@ -95,7 +95,7 @@ alien_init_x DD 499
 alien_init_direction DD 1
 
 alien_x DD 0
-alien_y EQU 255
+alien_y DD 175
 
 alien_direction DD 0
 alien_alive DD 0
@@ -568,13 +568,17 @@ spaceship_hit:
 	cmp alien_blast_x, edx
 	jg move_alien_blast
 
-	mov edx, spaceship_y
-	cmp alien_blast_y, edx
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	mov edx, alien_blast_y
+	add edx, 20
+	cmp edx, spaceship_y
 	jl move_alien_blast
 
 	mov edx, spaceship_y
 	add edx, spaceship_height
-	cmp alien_blast_y, edx
+	mov ecx, alien_blast_y
+	add ecx, 20
+	cmp ecx, edx
 	jg move_alien_blast
 
 	;mov alien_can_shoot, 1
@@ -596,10 +600,16 @@ spaceship_hit:
 	jmp afisare_litere
 
 decrease_lives:
+	make_text_macro '+', area, alien_x, alien_y
+	mov edx, alien_y
+	add edx, alien_blast_speed
+	mov alien_y, edx
 	mov edx, player_lives
 	dec edx
 	mov player_lives, edx
-	jmp reset_alien_blast
+	mov alien_can_shoot, 1
+	make_text_macro ' ', area, alien_blast_x, alien_blast_y
+	jmp next
 
 move_alien_blast:
 	mov edx, 520
