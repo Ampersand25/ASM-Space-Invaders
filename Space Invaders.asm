@@ -110,7 +110,7 @@ game_over_text_y EQU 20
 
 player_lives DD 2
 
-alien_model DD 0
+alien_model DD -1
 
 system_arg DB "pause", 0
 
@@ -559,6 +559,15 @@ change_dir:
 	jmp back
 
 restore_alien:
+	mov edx, alien_model
+	inc edx
+	mov alien_model, edx
+	mov edx, 5
+	cmp alien_model, edx
+	jne valid_alien_model
+	mov alien_model, 0
+
+valid_alien_model:
 	mov edx, alien_init_x
 	mov alien_x, edx
 	mov alien_alive, 1
