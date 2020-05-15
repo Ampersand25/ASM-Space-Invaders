@@ -28,7 +28,12 @@ area DD 0
 
 score DD 0
 score_max EQU 1000
-points EQU 10
+
+points_alien_1 EQU 1
+points_alien_2 EQU 5
+points_alien_3 EQU 10
+points_alien_4 EQU 15
+points_alien_5 EQU 20
 
 arg1 EQU 8
 arg2 EQU 12
@@ -469,6 +474,7 @@ draw proc
 	mov edx, 0
 	cmp edx, game_over
 	je not_exit
+
 	push offset system_arg
 	call system
 	push -1
@@ -482,6 +488,7 @@ not_exit:
 	mov edx, score_max
 	cmp score, edx
 	jl game_not_over
+
 	push offset system_arg
 	call system
 	push 1
@@ -496,22 +503,65 @@ next_instruction:
 	mov edx, can_shoot
 	cmp edx, 1
 	je eticheta
+
 	mov edx, alien_x
 	cmp blast_x, edx
 	jl eticheta
+
 	mov edx, alien_x
 	add edx, alien_width
 	cmp blast_x, edx
 	jg eticheta
+
 	mov edx, alien_y
 	cmp blast_y, edx
 	jl eticheta
+
 	mov edx, alien_y
 	add edx, alien_height
 	cmp blast_y, edx
 	jg eticheta
+
 	mov alien_alive, 0
-	mov edx, points
+
+	mov edx, 0
+	cmp edx, alien_model
+	je add_1
+
+	mov edx, 1
+	cmp edx, alien_model
+	je add_2
+
+	mov edx, 2
+	cmp edx, alien_model
+	je add_3
+
+	mov edx, 3
+	cmp edx, alien_model
+	je add_4
+
+	jmp add_5
+
+add_1:
+	mov edx, points_alien_1
+	jmp change_score
+
+add_2:
+	mov edx, points_alien_2
+	jmp change_score
+
+add_3:
+	mov edx, points_alien_3
+	jmp change_score
+
+add_4:
+	mov edx, points_alien_4
+	jmp change_score
+
+add_5:
+	mov edx, points_alien_5
+
+change_score:
 	add score, edx
 	make_text_macro '+', area, alien_x, alien_y
 	make_text_macro ' ', area, blast_x, blast_y
@@ -523,16 +573,19 @@ eticheta:
 	mov edx, alien_speed
 	cmp timer, edx
 	jne alien_shoot
+
 	mov timer, 0
 
 back:
 	mov ecx, 0
 	cmp ecx, alien_direction
 	je right_dir
+
 	mov eax, alien_x
 	mov ebx, spaceship_speed
 	cmp eax, ebx
 	jle change_dir
+
 	make_text_macro '+', area, alien_x, alien_y
 	mov ecx, alien_x
 	sub ecx, spaceship_speed
@@ -547,6 +600,7 @@ right_dir:
 	sub ebx, ecx
 	cmp eax, ebx
 	jge change_dir
+
 	make_text_macro '+', area, alien_x, alien_y
 	mov ecx, alien_x
 	add ecx, spaceship_speed
@@ -566,6 +620,7 @@ restore_alien:
 	mov edx, 5
 	cmp alien_model, edx
 	jne valid_alien_model
+
 	mov alien_model, 0
 
 valid_alien_model:
@@ -657,12 +712,14 @@ move_alien_blast:
 	mov edx, 520
 	cmp edx, alien_blast_y
 	jle reset_alien_blast
+
 	make_text_macro ' ', area, alien_blast_x, alien_blast_y
 	mov edx, alien_blast_speed
 	add alien_blast_y, edx
 	mov edx, 520
 	cmp edx, alien_blast_y
 	jle reset_alien_blast
+
 	make_text_macro '|', area, alien_blast_x, alien_blast_y
 	jmp increase_game_start
 
@@ -673,18 +730,21 @@ increase_game_start:
 	mov edx, 3
 	cmp game_start, edx
 	je blast_shoot
+
 	inc game_start
 
 blast_shoot:
 	mov edx, 1
 	cmp edx, can_shoot
 	je next
+
 	make_text_macro ' ', area, blast_x, blast_y
 	mov ecx, blast_speed
 	sub blast_y, ecx
 	mov edx, 0
 	cmp edx, blast_y
 	jge reset_blast
+
 	make_text_macro '*', area, blast_x, blast_y
 	jmp next
 
@@ -695,9 +755,11 @@ next:
 	mov eax, [ebp + arg1]
 	cmp eax, 1
 	jz evt_click
+
 	cmp eax, 2
 	jz afisare_litere ; nu s-a efectuat click pe nimic
 	;mai jos e codul care intializeaza fereastra cu pixeli negri
+
 	mov eax, area_width
 	mov ebx, area_height
 	mul ebx
@@ -732,13 +794,17 @@ evt_click:
 	mov eax, [ebp + arg2]
 	cmp eax, buttonLeft_x
 	jle buttonLeft_fail
+
 	cmp eax, buttonLeft_x + buttonLeft_width
 	jge buttonLeft_fail
+
 	mov eax, [ebp + arg3]
 	cmp eax, buttonLeft_y
 	jle buttonLeft_fail
+
 	cmp eax, buttonLeft_y + buttonLeft_length
 	jge buttonLeft_fail
+
 	jmp buttonLeft
 
 buttonLeft:
@@ -770,13 +836,17 @@ buttonLeft_fail:
 	mov eax, [ebp + arg2]
 	cmp eax, buttonShoot_x
 	jle buttonShoot_fail
+
 	cmp eax, buttonShoot_x + buttonShoot_width
 	jge buttonShoot_fail
+
 	mov eax, [ebp + arg3]
 	cmp eax, buttonShoot_y
 	jle buttonShoot_fail
+
 	cmp eax, buttonShoot_y + buttonShoot_length
 	jge buttonShoot_fail
+
 	jmp buttonShoot
 
 buttonShoot:
@@ -846,13 +916,17 @@ buttonShoot_fail:
 	mov eax, [ebp + arg2]
 	cmp eax, buttonRight_x
 	jle buttonRight_fail
+
 	cmp eax, buttonRight_x + buttonRight_width
 	jge buttonRight_fail
+
 	mov eax, [ebp + arg3]
 	cmp eax, buttonRight_y
 	jle buttonRight_fail
+
 	cmp eax, buttonRight_y + buttonRight_length
 	jge buttonRight_fail
+
 	jmp buttonRight
 
 buttonRight:
@@ -997,6 +1071,7 @@ alien_dead_verification:
 	mov edx, 0
 	cmp edx, alien_alive
 	je final_draw
+
 	make_text_macro '@', area, alien_x, alien_y
 
 final_draw:
